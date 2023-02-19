@@ -1,0 +1,8 @@
+"Wizualizacja regału półkowego w przeglądarce".
+Technologie: HTML, CSS i Java Script oraz baza danych prowadzonych w plikach csv.
+Plik "index.html", "krt.css" i "krt.js" stanowią integralną całość.
+Natomiast 5 plików "Schelfx.csv" służą do dodawania na półki predefiniowanych danych.
+Możemy wybrać dany plik oraz umieścić go na danej półce używając przycisków wyświetlanych na stronie.
+Również mamy możliwość dodawania wpisanych przez nas danych produktów na wybrane półki.
+Regał posiada mechanizm przeciążenia.
+Gdy waga na danej półce przekracza 35kg, ta zmienia kolor na czerwony.
