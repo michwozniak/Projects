@@ -1,0 +1,5 @@
+Weather Station Project - consisting of the Adruino Uno platform and the ESP280 wifi module.
+Uses 2xDHT11, DHT22, BMP280 sensors, soil moisture sensor.
+It allows you to test the temperature, humidity, pressure, altitude, soil moisture.
+The wifi module is powered by pins from Adruino, Adruino is powered by AA batteries.
+The data is sent to the Internet platform thanks to ThingSpeak.
