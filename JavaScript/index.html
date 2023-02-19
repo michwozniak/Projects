@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Warehouse - Bartosz Jatczyszyn, Michał Woźniak, Patryk Krzyżak</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head>
+<body>
+   
+    <h1>Add a product</h1>
+	<fieldset>
+      <legend>Product Information</legend>
+
+      <p><label for="rack_number">Rack number:</label>
+         <input type="text" id="rack_number" name="rack_number" maxlength="1"/>
+      </p>
+
+      <p><label for="code">Code:</label>
+         <input  type="text" id="code" name="code" maxlength="10" />
+      </p>
+
+      <p><label for="type">Type:</label>
+         <input type="text" id="type" name="type" />
+      </p>
+
+      <p><label for="weight">Weight:</label>
+         <input type="text" id="weight" name="weight" />
+      </p>
+
+      <p><button id="button" onclick="AddProduct()">Add Product</button></p>
+      <p1> New product -> </p1>
+      <p1> Shelf: </p1>
+      <p1 id="output1"></p1>
+      <p1> | Code: </p1>
+      <p1 id="output2"></p1>
+      <p1> | Type: </p1>
+      <p1 id="output3"></p1>
+      <p1> | Weight: </p1>
+      <p1 id="output4"></p1>
+	</fieldset>
+
+    <table id="Rack_1">
+       <thead>
+          <tr>
+             <tr id="Rack1_header">
+             <th>Shelves - Rack 1</th> 
+             <th>Code</th> 
+             <th>Type</th> 
+             <th>Weight</th>
+          </tr>
+       </thead>
+    </table>
+
+	<table id="Rack_2">
+       <thead>
+          <tr>
+             <tr id="Rack2_header">
+             <th>Shelves - Rack 2</th> 
+             <th>Code</th> 
+             <th>Type</th> 
+             <th>Weight</th>
+          </tr>
+       </thead>
+    </table>
+
+	<table id="Rack_3">
+       <thead>
+          <tr>
+             <tr id="Rack3_header">
+             <th>Shelves - Rack 3</th> 
+             <th>Code</th> 
+             <th>Type</th> 
+             <th>Weight</th>
+          </tr>
+       </thead>
+    </table>
+
+	<table id="Rack_4">
+       <thead>
+          <tr>
+             <tr id="Rack4_header">
+             <th>Shelves - Rack 4</th> 
+             <th>Code</th> 
+             <th>Type</th> 
+             <th>Weight</th>
+          </tr>
+       </thead>
+    </table>
+
+	<table id="Rack_5">
+       <thead>
+          <tr>
+             <tr id="Rack5_header">
+             <th>Shelves - Rack 5</th> 
+             <th>Code</th> 
+             <th>Type</th> 
+             <th>Weight</th>
+          </tr>
+       </thead>
+    </table>
+
+	<script type="text/javascript">
+
+    var table1 = document.getElementById("Rack_1")
+    var table2 = document.getElementById("Rack_2")
+    var table3 = document.getElementById("Rack_3")
+    var table4 = document.getElementById("Rack_4")
+    var table5 = document.getElementById("Rack_5")
+
+    var table1_weight = 0;
+    var table2_weight = 0;
+    var table3_weight = 0;
+    var table4_weight = 0;
+    var table5_weight = 0;
+    var max_weight = 35;
+
+	</script>
+	<input type="file" id="CSV_file" />
+	<input type="button" id="Upload_Rack1" value="Upload_Rack1" onclick="Upload_Rack(1)" />
+	<input type="button" id="Upload_Rack2" value="Upload_Rack2" onclick="Upload_Rack(2)" />
+	<input type="button" id="Upload_Rack3" value="Upload_Rack3" onclick="Upload_Rack(3)" />
+	<input type="button" id="Upload_Rack4" value="Upload_Rack4" onclick="Upload_Rack(4)" />
+	<input type="button" id="Upload_Rack5" value="Upload_Rack5" onclick="Upload_Rack(5)" />
+	<hr />
+	<div id="dvCSV">
+	</div>
+	</body>
+</html>
