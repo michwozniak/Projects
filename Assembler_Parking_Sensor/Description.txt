@@ -1,0 +1,2 @@
+Design of a 3-stage distance measurement system with a built-in buzzer.
+AVR Microchip ATMEGA328P-XMINI + Optical reflective sensor module TCRT5000 LM393 IR.
