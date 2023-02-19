@@ -1,0 +1,4 @@
+Design of a device that measures the user's reflexes.
+Work mode for 2 players, the one who presses his button faster wins.
+Built-in mechanism that saves the top 3 scores of player A and B.
+Buzzer is programmed to play "We Are the Champions" music.
