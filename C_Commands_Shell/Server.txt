@@ -1,0 +1,239 @@
+#include        <sys/types.h>   /* basic system data types */
+#include        <sys/socket.h>  /* basic socket definitions */
+#include        <sys/time.h>    /* timeval{} for select() */
+#include        <time.h>                /* timespec{} for pselect() */
+#include        <netinet/in.h>  /* sockaddr_in{} and other Internet defns */
+#include        <arpa/inet.h>   /* inet(3) functions */
+#include        <errno.h>
+#include        <fcntl.h>               /* for nonblocking */
+#include        <netdb.h>
+#include        <signal.h>
+#include        <stdio.h>
+#include        <stdlib.h>
+#include        <string.h>
+#include        <unistd.h>
+#include        <sys/wait.h>
+
+#define MAXLINE 1024
+
+#define SA struct sockaddr
+
+#define LISTENQ 2
+
+///////////////////////////////////     OBSŁUGA SIG_CHLD          ////////////////////////////////////////////////////////////////////////////////
+
+void
+sig_chld(int signo)
+{
+        pid_t   pid;
+        int             stat;
+
+        while ( (pid = waitpid(-1, &stat, WNOHANG)) > 0)
+                printf("child %d terminated\n", pid);
+        return;
+}
+
+///////////////////////       Funkcje obudowujące funkcje write()        //////////////////////////////////////////////////////////////////////////
+
+ssize_t
+writen(int fd, const void *vptr, size_t n)     // n - liczba odczytanych bajtów
+{
+        size_t          nleft;
+        ssize_t         nwritten;
+        const char      *ptr;
+
+        ptr = vptr;
+        nleft = n;
+
+        // Wywołuje funkcje write w pętli aż wszystkie dane zostaną zapisane
+        while (nleft > 0) {
+                if ( (nwritten = write(fd, ptr, nleft)) <= 0) {
+                        if (nwritten < 0 && errno == EINTR)
+                                nwritten = 0;
+                        else
+                                return(-1);
+                }
+
+                nleft -= nwritten;
+                ptr   += nwritten;
+        }
+        return(n);
+}
+
+void
+Writen(int fd, void *ptr, size_t nbytes)        // 3 argument, nbytes - liczba odczytanych bajtów
+{
+        if (writen(fd, ptr, nbytes) != nbytes)
+                perror("writen error");           // Obudowanie funkcji writen() aby możliwe było wyświetlenie błędu
+}
+
+///////////////////////////////////////////////////////////////////////
+
+
+void
+zdalne_polecenia(int sockfd)
+{
+        ssize_t         n;
+        char            buf[MAXLINE];    // Tablica charów o długości MAXLINE=1024
+        //int           pozycja = 0;
+        int             pipefd[2], status, done=0;
+        pid_t           childpid;
+
+again:
+        while ( (n = read(sockfd, buf, MAXLINE)) > 0) {       // Czyta z gniazda sockfd dane, zapisuje w buf, n przyjmuje liczbe odczytanych bajtów
+
+                buf[strlen(buf)-1] = '\0';     // Usuwanie znaku końca linii z bufora odczytanego z deskryptora
+
+/////////////////////////////////////////////////////////    SKRYPT 1 - WŁASNY
+
+//   Skrypt zamieniający ciąg znaków zawierający spację w 2 ciągi znaków które stają się 2 parametrami
+
+
+//              for (int i = 0; i < 1024; ++i) {
+//                      if (buf[i] == ' ') {
+//                              pozycja = i;
+//                      }
+//              }
+
+//              char parametr_1[10];
+//              char parametr_2[10];
+
+                // Testowe parametry
+                //char *parametr_1 = "date";
+                //char *parametr_2 = "cat";
+//
+
+//              for (int i = 0; i < pozycja; ++i) {
+//                 parametr_1[i] = buf[i];
+//              }
+//
+//              int j = 0;
+//              for (int i = pozycja+1; i < 1024; ++i) {
+//                  parametr_2[j] = buf[i];
+//                  ++j;
+//              }
+
+///////////////////////////////////////////////////////////     SKRYPT 2 - KOMENDY SYSTEMOWE
+
+                char seps[] = " ,\t\n";    // Jeśli wystąpi któryś z podanych wyrażeń to przerywa ciąg znaków
+                char *pch;
+                pch = strtok(buf,seps);    // Zapisuje kawałek ciągu do tokena
+                char *parametr_1 = pch;    // Patametr_1 otrzymuje wartość tego tokena - 1 człon komendy
+                pch = strtok(NULL,seps);
+                char *parametr_2 = pch;    // Patametr_2 otrzymuje kolejną wartość - 2 człon komendy
+                pch = strtok(NULL,seps);
+                char *parametr_3 = pch;
+
+                char *duzo = "Za duzo parametrów! ";
+                if(parametr_3 == ""){
+                        fputs(duzo, stdout);
+                }
+
+		char *poczatek = "------------------------------------- Nowe wywołanie -------------------------------------\n";
+                fputs(poczatek, stdout);
+
+
+//////////////////////////////////////////////////////        OBSŁUŻENIE PIPE() FORK() EXEC()
+
+                pipe(pipefd);
+
+                childpid = fork();    // fork() - w celu zapewnienia komunikacji między procesem macierzystym oraz jego procesami potomnymi
+                if (childpid == 0) {
+                        dup2(pipefd[1],STDOUT_FILENO);
+                        execlp(parametr_1, parametr_1, (char *) NULL);
+                }
+                childpid = fork();
+                if (childpid == 0) {
+                        close(pipefd[1]);
+                        dup2(pipefd[0],STDIN_FILENO);
+                        execlp(parametr_2, parametr_2, (char *) NULL);
+                 }
+
+                close(pipefd[0]);   // deskryptor pliku tylko do odczytu
+                close(pipefd[1]);   // deskryptor pliku tylko do zapisu
+	}
+
+/////////////////////////////////////////////////////////////////////////////////////
+        
+        if (n < 0 && errno == EINTR)     // Obsługa przerwania, wznawia funkcje
+                goto again;
+        else if (n < 0)
+                perror("zdalne_polecenia: BŁĄD ODCZYTU");
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////       MAIN        ////////////////////////////////////////////////////
+
+int
+main(int argc, char **argv)
+{
+        int                             listenfd, connfd;
+        pid_t                           childpid;
+        socklen_t                       clilen;
+        struct sockaddr_in6             cliaddr, servaddr;
+        void                            sig_chld(int);
+
+   signal(SIGCHLD, SIG_IGN);          // Jawne zignorowanie psygnału SIG_CHLD potrzebne do użycia funkcji fork()
+
+////////////////////////////     SOCKET()      /////////////////////////////////////////////////
+
+   if ( (listenfd = socket(AF_INET6, SOCK_STREAM, 0)) < 0){
+          fprintf(stderr,"BŁĄD socket():  %s\n", strerror(errno));
+          return 1;
+   }
+
+///////////////////////////     SETSOCKOPT()     ///////////////////////////////////////////////////
+
+   int optval = 1;
+   if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0){         //    ustawiona opcja REUSE ADDRES
+                fprintf(stderr,"SO_REUSEADDR BŁĄD setsockopt():  %s\n", strerror(errno));
+   }
+
+        // Uzupełnienie struktury adresowej
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin6_family = AF_INET6;
+        servaddr.sin6_addr   = in6addr_any;
+        servaddr.sin6_port   = htons(514);      /* port rsh */
+
+///////////////////////////       BIND()         //////////////////////////////////////////////////////////
+
+   if ( bind( listenfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0){
+           fprintf(stderr,"BŁĄD bind():  %s\n", strerror(errno));
+           return 1;
+   }
+
+///////////////////////////       LISTEN()        ///////////////////////////////////////////////////////////
+
+   if ( listen(listenfd, LISTENQ) < 0){
+           fprintf(stderr,"BŁĄD listen():  %s\n", strerror(errno));
+           return 1;
+   }
+
+
+///////////////////////////         PĘTLA            ///////////////////////////////////////////////////////////////
+
+        for ( ; ; ) {
+                clilen = sizeof(cliaddr);
+                if ( (connfd = accept(listenfd, (SA *) &cliaddr, &clilen)) < 0) {
+                        if (errno == EINTR)
+                                continue;
+                        else
+                                perror("BŁĄD accept(): ");
+                                exit(1);
+                }
+
+
+                // Ta część wykonuje sie tylko w procesie potomnym
+                if ( (childpid = fork()) == 0) {
+                        close(listenfd);         // Zamknięcie gniazda nasłuchującego
+                        zdalne_polecenia(connfd);       // Obsługa klienta do czasu aż nie zakończy połączenia ctrl + d
+                        exit(0);
+                }
+
+                // Ta część w procesie macierzystym
+                close(connfd);                   // Zamknięcie gniazda połączonego w procesie macierzystym
+        }
+}
+
